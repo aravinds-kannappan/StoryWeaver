@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, BookOpen, Wand2 } from "lucide-react";
 import { GenreSelector, Genre } from "@/components/GenreSelector";
 import { ThemeSelector, Theme } from "@/components/ThemeSelector";
@@ -8,21 +9,23 @@ import { StoryDisplay } from "@/components/StoryDisplay";
 import { OutlineAgent, RefinementAgent } from "@/lib/storyAgents";
 import { useToast } from "@/hooks/use-toast";
 
-interface StoryOutline {
+interface Story {
   title: string;
-  premise: string;
-  mainCharacter: string;
-  conflict: string;
-  plotPoints: string[];
+  chapters: {
+    title: string;
+    content: string;
+  }[];
   themes: string[];
   tone: string;
+  summary: string;
 }
 
 const Index = () => {
   const [selectedGenres, setSelectedGenres] = useState<Genre[]>([]);
   const [selectedThemes, setSelectedThemes] = useState<Theme[]>([]);
-  const [storyOutline, setStoryOutline] = useState<StoryOutline | null>(null);
-  const [refinedOutline, setRefinedOutline] = useState<StoryOutline | null>(null);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [story, setStory] = useState<Story | null>(null);
+  const [refinedStory, setRefinedStory] = useState<Story | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRefining, setIsRefining] = useState(false);
   const { toast } = useToast();
@@ -44,25 +47,25 @@ const Index = () => {
   };
 
   const generateStory = async () => {
-    if (selectedGenres.length === 0 || selectedThemes.length === 0) {
+    if (!customPrompt.trim() && (selectedGenres.length === 0 || selectedThemes.length === 0)) {
       toast({
-        title: "Selection Required",
-        description: "Please select at least one genre and one theme to generate your story.",
+        title: "Input Required",
+        description: "Please enter a custom prompt or select at least one genre and one theme.",
         variant: "destructive"
       });
       return;
     }
 
     setIsGenerating(true);
-    setStoryOutline(null);
-    setRefinedOutline(null);
+    setStory(null);
+    setRefinedStory(null);
 
     try {
-      const outline = await OutlineAgent.generateOutline(selectedGenres, selectedThemes);
-      setStoryOutline(outline);
+      const generatedStory = await OutlineAgent.generateStory(customPrompt || "", selectedGenres, selectedThemes);
+      setStory(generatedStory);
       toast({
         title: "Story Generated!",
-        description: "Your story outline has been created by our Outline Agent.",
+        description: "Your full story has been created by our Story Agent.",
       });
     } catch (error) {
       toast({
@@ -76,12 +79,12 @@ const Index = () => {
   };
 
   const refineStory = async () => {
-    if (!storyOutline) return;
+    if (!story) return;
 
     setIsRefining(true);
     try {
-      const refined = await RefinementAgent.refineOutline(storyOutline);
-      setRefinedOutline(refined);
+      const refined = await RefinementAgent.refineStory(story);
+      setRefinedStory(refined);
       toast({
         title: "Story Refined!",
         description: "Your story has been enhanced with deeper character development and plot twists.",
@@ -98,10 +101,11 @@ const Index = () => {
   };
 
   const resetStory = () => {
-    setStoryOutline(null);
-    setRefinedOutline(null);
+    setStory(null);
+    setRefinedStory(null);
     setSelectedGenres([]);
     setSelectedThemes([]);
+    setCustomPrompt("");
   };
 
   return (
@@ -152,6 +156,19 @@ const Index = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Controls */}
           <div className="space-y-6">
+            <Card className="p-4">
+              <h3 className="font-semibold mb-3">Custom Story Prompt</h3>
+              <Textarea
+                value={customPrompt}
+                onChange={(e) => setCustomPrompt(e.target.value)}
+                placeholder="Describe your story idea... (e.g., 'A detective investigating supernatural crimes in modern Tokyo')"
+                className="min-h-[100px]"
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                Enter a custom prompt or use the genre/theme selectors below
+              </p>
+            </Card>
+
             <GenreSelector 
               selectedGenres={selectedGenres}
               onGenreToggle={handleGenreToggle}
@@ -165,7 +182,7 @@ const Index = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={generateStory}
-                disabled={isGenerating || selectedGenres.length === 0 || selectedThemes.length === 0}
+                disabled={isGenerating || (!customPrompt.trim() && (selectedGenres.length === 0 || selectedThemes.length === 0))}
                 className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground shadow-story"
                 size="lg"
               >
@@ -182,7 +199,7 @@ const Index = () => {
                 )}
               </Button>
               
-              {(storyOutline || refinedOutline) && (
+              {(story || refinedStory) && (
                 <Button
                   onClick={resetStory}
                   variant="outline"
@@ -197,8 +214,8 @@ const Index = () => {
           {/* Right Column - Story Display */}
           <div>
             <StoryDisplay
-              outline={storyOutline}
-              refinedOutline={refinedOutline}
+              story={story}
+              refinedStory={refinedStory}
               isGenerating={isGenerating}
               isRefining={isRefining}
               onRefine={refineStory}

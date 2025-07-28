@@ -11,6 +11,17 @@ interface StoryOutline {
   tone: string;
 }
 
+interface Story {
+  title: string;
+  chapters: {
+    title: string;
+    content: string;
+  }[];
+  themes: string[];
+  tone: string;
+  summary: string;
+}
+
 // Mock story templates for different genre combinations
 const storyTemplates = {
   Fantasy: {
@@ -55,6 +66,29 @@ const themeElements = {
 
 // Outline Agent - Generates initial story structure
 export class OutlineAgent {
+  static async generateStory(customPrompt: string, genres: Genre[], themes: Theme[]): Promise<Story> {
+    // Simulate AI processing time
+    await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 3000));
+    
+    const primaryGenre = genres[0] || "Fantasy";
+    const template = storyTemplates[primaryGenre as keyof typeof storyTemplates] || storyTemplates.Fantasy;
+    
+    const title = customPrompt ? this.generateTitleFromPrompt(customPrompt) : this.generateTitle(genres, themes);
+    const tone = this.determineTone(genres);
+    const storyThemes = themes.slice(0, 3);
+    
+    const summary = customPrompt || this.generateSummary(template, themes);
+    const chapters = this.generateChapters(customPrompt, template, themes, 3);
+    
+    return {
+      title,
+      chapters,
+      themes: storyThemes,
+      tone,
+      summary
+    };
+  }
+
   static async generateOutline(genres: Genre[], themes: Theme[]): Promise<StoryOutline> {
     // Simulate AI processing time
     await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 2000));
@@ -142,10 +176,105 @@ export class OutlineAgent {
     
     return tones[genres[0] as keyof typeof tones] || "Dramatic and Engaging";
   }
+
+  private static generateTitleFromPrompt(prompt: string): string {
+    const words = prompt.split(' ').filter(word => word.length > 3);
+    const keyWords = words.slice(0, 3);
+    return keyWords.map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+  }
+
+  private static generateSummary(template: any, themes: Theme[]): string {
+    const character = template.characters[Math.floor(Math.random() * template.characters.length)];
+    const conflict = template.conflicts[Math.floor(Math.random() * template.conflicts.length)];
+    const themeElements_sample = themes.slice(0, 2).map(theme => 
+      themeElements[theme as keyof typeof themeElements]?.[0] || ""
+    ).filter(Boolean);
+    
+    return `${character} must face ${conflict.toLowerCase()}. Through their journey, they will discover the true meaning of ${themeElements_sample.join(" and ")}, ultimately learning that courage comes not from the absence of fear, but from acting despite it.`;
+  }
+
+  private static generateChapters(customPrompt: string, template: any, themes: Theme[], numChapters: number): { title: string; content: string; }[] {
+    const chapters = [];
+    
+    for (let i = 0; i < numChapters; i++) {
+      const chapterTitle = this.generateChapterTitle(i + 1, template);
+      const content = this.generateChapterContent(customPrompt, template, themes, i + 1);
+      chapters.push({ title: chapterTitle, content });
+    }
+    
+    return chapters;
+  }
+
+  private static generateChapterTitle(chapterNum: number, template: any): string {
+    const titleTemplates = [
+      "The Journey Begins", "Unexpected Encounters", "The Truth Revealed",
+      "Into the Unknown", "Confronting Destiny", "The Final Stand"
+    ];
+    return titleTemplates[chapterNum - 1] || `Chapter ${chapterNum}`;
+  }
+
+  private static generateChapterContent(customPrompt: string, template: any, themes: Theme[], chapterNum: number): string {
+    const baseContent = customPrompt ? this.generateContentFromPrompt(customPrompt, chapterNum) : this.generateGenericContent(template, chapterNum);
+    
+    // Generate substantial content (approximately 10 pages worth)
+    const paragraphs = [];
+    
+    for (let i = 0; i < 8; i++) {
+      paragraphs.push(this.generateParagraph(baseContent, template, themes, i));
+    }
+    
+    return paragraphs.join('\n\n');
+  }
+
+  private static generateContentFromPrompt(prompt: string, chapterNum: number): string {
+    const chapterIntros = [
+      `The story begins with the premise of ${prompt}. Our protagonist finds themselves at the center of events that will change everything.`,
+      `As the narrative unfolds, the complexities of ${prompt} become apparent. New challenges emerge that test our hero's resolve.`,
+      `The climax approaches as ${prompt} reaches its full potential. Everything that has been building comes to a head in this crucial chapter.`
+    ];
+    return chapterIntros[chapterNum - 1] || `Continuing with ${prompt}, the story develops further complexities and deeper character revelations.`;
+  }
+
+  private static generateGenericContent(template: any, chapterNum: number): string {
+    const character = template.characters[Math.floor(Math.random() * template.characters.length)];
+    const plotElement = template.plotElements[Math.floor(Math.random() * template.plotElements.length)];
+    
+    return `${character} encounters ${plotElement.toLowerCase()}. This marks a pivotal moment in their journey.`;
+  }
+
+  private static generateParagraph(baseContent: string, template: any, themes: Theme[], paragraphIndex: number): string {
+    const sentences = [
+      `${baseContent} The atmosphere was thick with tension as events began to unfold.`,
+      `Deep in thought, the protagonist contemplated the choices that had led to this moment.`,
+      `The landscape around them seemed to mirror their internal struggles and conflicts.`,
+      `Memories of the past surfaced, bringing both clarity and confusion to the present situation.`,
+      `With each step forward, the weight of responsibility grew heavier on their shoulders.`,
+      `The sound of distant voices carried on the wind, hinting at the presence of others.`,
+      `Time seemed to slow as critical decisions loomed on the horizon.`,
+      `The protagonist's determination was tested as obstacles appeared in their path.`
+    ];
+    
+    return sentences[paragraphIndex] || `The story continues to develop, revealing new depths and dimensions to the narrative that keep readers engaged and invested in the outcome.`;
+  }
 }
 
 // Refinement Agent - Enhances the story with character depth and plot twists
 export class RefinementAgent {
+  static async refineStory(originalStory: Story): Promise<Story> {
+    // Simulate AI processing time
+    await new Promise(resolve => setTimeout(resolve, 4000 + Math.random() * 3000));
+    
+    const enhancedSummary = this.enhanceSummary(originalStory.summary);
+    const refinedChapters = this.refineChapters(originalStory.chapters);
+    
+    return {
+      ...originalStory,
+      title: originalStory.title + ": Enhanced Edition",
+      summary: enhancedSummary,
+      chapters: refinedChapters,
+    };
+  }
+
   static async refineOutline(originalOutline: StoryOutline): Promise<StoryOutline> {
     // Simulate AI processing time
     await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
@@ -223,5 +352,43 @@ export class RefinementAgent {
     
     const enhancement = enhancements[Math.floor(Math.random() * enhancements.length)];
     return `${premise} ${enhancement}`;
+  }
+
+  private static enhanceSummary(summary: string): string {
+    const enhancements = [
+      "But deeper forces are at work, threatening to unravel everything they hold dear.",
+      "However, the truth they seek may be more dangerous than the lies they've been told.",
+      "Yet their journey will test not only their strength, but the very core of who they are.",
+      "As they delve deeper, they discover that their destiny is intertwined with forces beyond their imagination."
+    ];
+    
+    const enhancement = enhancements[Math.floor(Math.random() * enhancements.length)];
+    return `${summary} ${enhancement}`;
+  }
+
+  private static refineChapters(chapters: { title: string; content: string; }[]): { title: string; content: string; }[] {
+    return chapters.map((chapter, index) => ({
+      title: this.enhanceChapterTitle(chapter.title, index),
+      content: this.enhanceChapterContent(chapter.content)
+    }));
+  }
+
+  private static enhanceChapterTitle(title: string, index: number): string {
+    const enhancements = [
+      "Shadows of", "Echoes of", "Whispers of", "Depths of", "Heart of"
+    ];
+    const enhancement = enhancements[index % enhancements.length];
+    return `${enhancement} ${title}`;
+  }
+
+  private static enhanceChapterContent(content: string): string {
+    const additionalParagraphs = [
+      "\n\nThe shadows seemed to whisper secrets that only the brave dared to hear. Each step forward revealed new layers of complexity in what had once seemed a straightforward path.",
+      "\n\nTime moved differently here, as if the very fabric of reality had been altered by the weight of destiny. The protagonist felt the pull of forces beyond their understanding.",
+      "\n\nMemories and dreams began to blur together, creating a tapestry of experiences that challenged everything they thought they knew about themselves and their world."
+    ];
+    
+    const enhancement = additionalParagraphs[Math.floor(Math.random() * additionalParagraphs.length)];
+    return content + enhancement;
   }
 }
